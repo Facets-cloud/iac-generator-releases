@@ -1,2 +1,2 @@
 # facets-releases
-Repo to publish releases of all facets tools
+Repo to publish releases of IAC Generator
