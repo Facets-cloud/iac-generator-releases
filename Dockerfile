@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     dnsutils \
     net-tools \
+    awscli \
     ca-certificates \
     bash-completion \
     && rm -rf /var/lib/apt/lists/* \
@@ -46,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 SHELL ["/bin/bash", "-c"]
 
 # Verify installation
-RUN terraform --version && curl --version && git --version && iac-generator --version
+RUN terraform --version && curl --version && git --version && aws --version && iac-generator --version
 
 CMD [ "bash" ]
 
