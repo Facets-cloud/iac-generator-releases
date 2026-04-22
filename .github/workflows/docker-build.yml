@@ -35,7 +35,17 @@ jobs:
             # Use the tag name from the release event
             VERSION="${{ github.event.release.tag_name }}"
           fi
-          
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::IAC Generator version is empty. For workflow_dispatch, provide 'iac_generator_version' (e.g., v0.1.21). For release events, the tag name must be set."
+            exit 1
+          fi
+
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::IAC Generator version '$VERSION' does not match the expected format 'vMAJOR.MINOR.PATCH' (e.g., v0.1.21). Release tarball URLs are built from this and would 404."
+            exit 1
+          fi
+
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Building for IAC Generator version: ${VERSION}"
       
