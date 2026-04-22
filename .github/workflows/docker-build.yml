@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       iac_generator_version:
-        description: 'IAC Generator version to build (e.g., v0.0.6)'
-        required: true
+        description: 'IAC Generator version to build (e.g., v0.1.21). Leave blank to use the latest release.'
+        required: false
         type: string
       tooling_aws_version:
         description: 'hashicorp/aws version to spoof under the aws3tooling path (see Dockerfile)'
@@ -28,6 +28,8 @@ jobs:
       
       - name: Get IAC Generator version
         id: get_version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.iac_generator_version }}"
@@ -36,9 +38,16 @@ jobs:
             VERSION="${{ github.event.release.tag_name }}"
           fi
 
+          # Fall back to the latest published release when no version is supplied.
+          # Happens on workflow_dispatch triggered via API, re-runs, or empty UI submissions.
           if [ -z "$VERSION" ]; then
-            echo "::error::IAC Generator version is empty. For workflow_dispatch, provide 'iac_generator_version' (e.g., v0.1.21). For release events, the tag name must be set."
-            exit 1
+            echo "No iac_generator_version provided; resolving latest release tag from Facets-cloud/iac-generator-releases"
+            VERSION=$(gh release view --repo Facets-cloud/iac-generator-releases --json tagName --jq .tagName)
+            if [ -z "$VERSION" ]; then
+              echo "::error::Could not resolve latest release tag from Facets-cloud/iac-generator-releases. Provide iac_generator_version explicitly."
+              exit 1
+            fi
+            echo "Using latest release: ${VERSION}"
           fi
 
           if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
