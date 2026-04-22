@@ -28,8 +28,6 @@ jobs:
       
       - name: Get IAC Generator version
         id: get_version
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.iac_generator_version }}"
@@ -39,10 +37,12 @@ jobs:
           fi
 
           # Fall back to the latest published release when no version is supplied.
-          # Happens on workflow_dispatch triggered via API, re-runs, or empty UI submissions.
+          # Uses the public GitHub API — no token required. Repo is public.
           if [ -z "$VERSION" ]; then
-            echo "No iac_generator_version provided; resolving latest release tag from Facets-cloud/iac-generator-releases"
-            VERSION=$(gh release view --repo Facets-cloud/iac-generator-releases --json tagName --jq .tagName)
+            echo "No iac_generator_version provided; resolving latest release tag via public GitHub API"
+            VERSION=$(curl -sfL -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/Facets-cloud/iac-generator-releases/releases/latest" \
+              | jq -r '.tag_name // empty')
             if [ -z "$VERSION" ]; then
               echo "::error::Could not resolve latest release tag from Facets-cloud/iac-generator-releases. Provide iac_generator_version explicitly."
               exit 1
