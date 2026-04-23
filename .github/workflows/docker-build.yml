@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       iac_generator_version:
-        description: 'IAC Generator version to build (e.g., v0.0.6)'
-        required: true
+        description: 'IAC Generator version to build (e.g., v0.1.21). Leave blank to use the latest release.'
+        required: false
         type: string
 
 env:
@@ -30,7 +30,26 @@ jobs:
             # Use the tag name from the release event
             VERSION="${{ github.event.release.tag_name }}"
           fi
-          
+
+          # Fall back to the latest published release when no version is supplied.
+          # Uses the public GitHub API — no token required. Repo is public.
+          if [ -z "$VERSION" ]; then
+            echo "No iac_generator_version provided; resolving latest release tag via public GitHub API"
+            VERSION=$(curl -sfL -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/Facets-cloud/iac-generator-releases/releases/latest" \
+              | jq -r '.tag_name // empty')
+            if [ -z "$VERSION" ]; then
+              echo "::error::Could not resolve latest release tag from Facets-cloud/iac-generator-releases. Provide iac_generator_version explicitly."
+              exit 1
+            fi
+            echo "Using latest release: ${VERSION}"
+          fi
+
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::IAC Generator version '$VERSION' does not match the expected format 'vMAJOR.MINOR.PATCH' (e.g., v0.1.21). Release tarball URLs are built from this and would 404."
+            exit 1
+          fi
+
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Building for IAC Generator version: ${VERSION}"
       
