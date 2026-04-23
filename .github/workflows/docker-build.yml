@@ -9,11 +9,6 @@ on:
         description: 'IAC Generator version to build (e.g., v0.1.21). Leave blank to use the latest release.'
         required: false
         type: string
-      tooling_aws_version:
-        description: 'hashicorp/aws version to spoof under the aws3tooling path (see Dockerfile)'
-        required: false
-        default: '3.74.0'
-        type: string
 
 env:
   IMAGE_NAME: facetscloud/iac-generator
@@ -89,6 +84,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             IAC_GENERATOR_VERSION=${{ steps.get_version.outputs.version }}
-            TOOLING_AWS_VERSION=${{ github.event.inputs.tooling_aws_version || '3.74.0' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
