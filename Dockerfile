@@ -1,5 +1,5 @@
 # Start from a lightweight official base
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Build arguments
 ARG IAC_GENERATOR_VERSION
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     && rm -rf /var/lib/apt/lists/* \
-    && pip3 install --no-cache-dir boto3 google-cloud-secret-manager awscli pyyaml \
+    && pip3 install --no-cache-dir --break-system-packages boto3 google-cloud-secret-manager awscli pyyaml \
     \
     # Install Terraform
     && curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
