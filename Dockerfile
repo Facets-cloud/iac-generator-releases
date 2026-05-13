@@ -13,6 +13,7 @@ ENV IAC_GENERATOR_VERSION=${IAC_GENERATOR_VERSION}
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
+    zip \
     unzip \
     git \
     vim \
