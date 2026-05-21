@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Start from a lightweight official base
 FROM debian:bookworm-slim
 
@@ -27,24 +28,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     && rm -rf /var/lib/apt/lists/* \
-    && pip3 install --no-cache-dir --break-system-packages boto3 google-cloud-secret-manager awscli pyyaml \
-    \
-    # Install Terraform (Facets fork)
-    && curl -fsSL https://github.com/Facets-cloud/terraform/releases/download/v${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
-    -o terraform.zip \
-    && unzip terraform.zip \
-    && mv terraform /usr/local/bin/ \
-    && rm terraform.zip \
-    \
-    # Install iac-generator
-    && ARCH=${TARGETARCH:-amd64} \
-    && echo "Downloading iac-generator ${IAC_GENERATOR_VERSION} for linux_${ARCH}" \
-    && curl -fsSL https://github.com/Facets-cloud/iac-generator-releases/releases/download/${IAC_GENERATOR_VERSION}/iac-generator_${IAC_GENERATOR_VERSION#v}_linux_${ARCH}.tar.gz \
-    -o iac-generator.tar.gz \
-    && tar -xzf iac-generator.tar.gz \
-    && mv iac-generator /usr/local/bin/ \
-    && chmod +x /usr/local/bin/iac-generator \
-    && rm iac-generator.tar.gz
+    && pip3 install --no-cache-dir --break-system-packages boto3 google-cloud-secret-manager awscli pyyaml
+
+# Install Terraform (Facets fork — private repo, fetched via GitHub API with a
+# BuildKit-mounted PAT). Token must have `Contents: Read` on
+# Facets-cloud/terraform. Pass at build time:
+#   docker build --secret id=gh_token,env=FACETS_TERRAFORM_TOKEN ...
+RUN --mount=type=secret,id=gh_token \
+    set -eux; \
+    GH_TOKEN=$(cat /run/secrets/gh_token); \
+    ARCH=${TARGETARCH:-amd64}; \
+    ASSET_NAME="terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip"; \
+    ASSET_ID=$(curl -fsSL \
+        -H "Authorization: Bearer ${GH_TOKEN}" \
+        -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/Facets-cloud/terraform/releases/tags/v${TERRAFORM_VERSION}" \
+        | jq -r --arg name "${ASSET_NAME}" '.assets[] | select(.name==$name) | .id'); \
+    test -n "${ASSET_ID}" || { echo "asset ${ASSET_NAME} not found in release v${TERRAFORM_VERSION}" >&2; exit 1; }; \
+    curl -fsSL \
+        -H "Authorization: Bearer ${GH_TOKEN}" \
+        -H "Accept: application/octet-stream" \
+        "https://api.github.com/repos/Facets-cloud/terraform/releases/assets/${ASSET_ID}" \
+        -o terraform.zip; \
+    unzip terraform.zip; \
+    mv terraform /usr/local/bin/; \
+    rm terraform.zip
+
+# Install iac-generator
+RUN set -eux; \
+    ARCH=${TARGETARCH:-amd64}; \
+    echo "Downloading iac-generator ${IAC_GENERATOR_VERSION} for linux_${ARCH}"; \
+    curl -fsSL "https://github.com/Facets-cloud/iac-generator-releases/releases/download/${IAC_GENERATOR_VERSION}/iac-generator_${IAC_GENERATOR_VERSION#v}_linux_${ARCH}.tar.gz" \
+        -o iac-generator.tar.gz; \
+    tar -xzf iac-generator.tar.gz; \
+    mv iac-generator /usr/local/bin/; \
+    chmod +x /usr/local/bin/iac-generator; \
+    rm iac-generator.tar.gz
 
 # Spoofed aws3tooling provider for legacy capillary-cloud-tf envs.
 # State in those envs has resources bound to registry.terraform.io/hashicorp/aws3tooling
