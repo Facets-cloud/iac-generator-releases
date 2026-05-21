@@ -84,5 +84,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             IAC_GENERATOR_VERSION=${{ steps.get_version.outputs.version }}
+          secrets: |
+            gh_token=${{ secrets.FACETS_TERRAFORM_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
