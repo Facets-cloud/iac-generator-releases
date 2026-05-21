@@ -6,7 +6,7 @@ ARG IAC_GENERATOR_VERSION
 ARG TARGETARCH
 
 # Versions
-ENV TERRAFORM_VERSION=1.5.7
+ENV TERRAFORM_VERSION=1.5.7-facets.0.1
 ENV IAC_GENERATOR_VERSION=${IAC_GENERATOR_VERSION}
 
 # Install utilities and Terraform
@@ -29,8 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install --no-cache-dir --break-system-packages boto3 google-cloud-secret-manager awscli pyyaml \
     \
-    # Install Terraform
-    && curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
+    # Install Terraform (Facets fork)
+    && curl -fsSL https://github.com/Facets-cloud/terraform/releases/download/v${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
     -o terraform.zip \
     && unzip terraform.zip \
     && mv terraform /usr/local/bin/ \
