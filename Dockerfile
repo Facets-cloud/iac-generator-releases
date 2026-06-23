@@ -86,13 +86,20 @@ RUN set -eux; \
 # path and serve it via a filesystem mirror.
 ARG TOOLING_AWS_VERSION=3.74.0
 
+# Install the binary under both registry hosts. Terraform expands a bare
+# `aws3tooling` provider to registry.terraform.io (matching the legacy state),
+# while OpenTofu expands a bare provider to its own registry.opentofu.org. Place
+# the spoof under both so it resolves regardless of which host the effective
+# provider source carries.
 RUN set -eux; \
     ARCH=${TARGETARCH:-amd64}; \
-    DIR="/usr/local/share/terraform/plugins/registry.terraform.io/hashicorp/aws3tooling/${TOOLING_AWS_VERSION}/linux_${ARCH}"; \
-    mkdir -p "$DIR"; \
     curl -fsSL "https://releases.hashicorp.com/terraform-provider-aws/${TOOLING_AWS_VERSION}/terraform-provider-aws_${TOOLING_AWS_VERSION}_linux_${ARCH}.zip" -o /tmp/aws.zip; \
-    unzip -p /tmp/aws.zip "terraform-provider-aws*" > "${DIR}/terraform-provider-aws3tooling_v${TOOLING_AWS_VERSION}"; \
-    chmod 0755 "${DIR}/terraform-provider-aws3tooling_v${TOOLING_AWS_VERSION}"; \
+    for host in registry.terraform.io registry.opentofu.org; do \
+        DIR="/usr/local/share/terraform/plugins/${host}/hashicorp/aws3tooling/${TOOLING_AWS_VERSION}/linux_${ARCH}"; \
+        mkdir -p "$DIR"; \
+        unzip -p /tmp/aws.zip "terraform-provider-aws*" > "${DIR}/terraform-provider-aws3tooling_v${TOOLING_AWS_VERSION}"; \
+        chmod 0755 "${DIR}/terraform-provider-aws3tooling_v${TOOLING_AWS_VERSION}"; \
+    done; \
     rm /tmp/aws.zip
 
 # Make both engines resolve the spoofed provider from the local mirror.
@@ -100,17 +107,24 @@ RUN set -eux; \
 # OpenTofu does not search that path (its implied dirs are user-scoped). Pin an
 # explicit CLI config via TF_CLI_CONFIG_FILE — honored by BOTH terraform and
 # tofu — that serves aws3tooling from the mirror and everything else from the
-# registry. The mirror auto-selects the matching linux_<arch> subdir.
+# registry. Both registry hosts are included so a bare provider resolves under
+# either engine. The mirror auto-selects the matching linux_<arch> subdir.
 ENV TF_CLI_CONFIG_FILE=/etc/iac/cli.tfrc
 RUN set -eux; mkdir -p /etc/iac; \
     printf '%s\n' \
       'provider_installation {' \
       '  filesystem_mirror {' \
       '    path    = "/usr/local/share/terraform/plugins"' \
-      '    include = ["registry.terraform.io/hashicorp/aws3tooling"]' \
+      '    include = [' \
+      '      "registry.terraform.io/hashicorp/aws3tooling",' \
+      '      "registry.opentofu.org/hashicorp/aws3tooling",' \
+      '    ]' \
       '  }' \
       '  direct {' \
-      '    exclude = ["registry.terraform.io/hashicorp/aws3tooling"]' \
+      '    exclude = [' \
+      '      "registry.terraform.io/hashicorp/aws3tooling",' \
+      '      "registry.opentofu.org/hashicorp/aws3tooling",' \
+      '    ]' \
       '  }' \
       '}' > /etc/iac/cli.tfrc
 
