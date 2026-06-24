@@ -8,6 +8,7 @@ ARG TARGETARCH
 
 # Versions
 ENV TERRAFORM_VERSION=1.5.7-facets.0.1
+ENV OPENTOFU_VERSION=1.12.3
 ENV IAC_GENERATOR_VERSION=${IAC_GENERATOR_VERSION}
 
 # Install utilities and Terraform
@@ -54,6 +55,18 @@ RUN --mount=type=secret,id=gh_token \
     mv terraform /usr/local/bin/; \
     rm terraform.zip
 
+# Install OpenTofu (public release — no token required). Selected per project-type
+# iacTool=OPENTOFU; the generator shells out to `tofu` when an OpenTofu project
+# type is referenced.
+RUN set -eux; \
+    ARCH=${TARGETARCH:-amd64}; \
+    curl -fsSL "https://github.com/opentofu/opentofu/releases/download/v${OPENTOFU_VERSION}/tofu_${OPENTOFU_VERSION}_linux_${ARCH}.zip" \
+        -o tofu.zip; \
+    unzip tofu.zip tofu; \
+    mv tofu /usr/local/bin/; \
+    chmod +x /usr/local/bin/tofu; \
+    rm tofu.zip
+
 # Install iac-generator
 RUN set -eux; \
     ARCH=${TARGETARCH:-amd64}; \
@@ -69,25 +82,57 @@ RUN set -eux; \
 # State in those envs has resources bound to registry.terraform.io/hashicorp/aws3tooling
 # (the old Python IaC generator emitted `provider "aws3tooling" {}` without
 # required_providers, synthesizing that source path). The public registry has no
-# such provider, so we place the real hashicorp/aws 3.74.0 binary under the
-# aws3tooling path and let terraform's implicit filesystem-mirror discovery
-# resolve it. No .terraformrc or env vars required — terraform's default
-# provider_installation checks /usr/local/share/terraform/plugins.
+# such provider, so we place the real hashicorp/aws binary under the aws3tooling
+# path and serve it via a filesystem mirror.
 ARG TOOLING_AWS_VERSION=3.74.0
 
+# Install the binary under both registry hosts. Terraform expands a bare
+# `aws3tooling` provider to registry.terraform.io (matching the legacy state),
+# while OpenTofu expands a bare provider to its own registry.opentofu.org. Place
+# the spoof under both so it resolves regardless of which host the effective
+# provider source carries.
 RUN set -eux; \
-    DIR="/usr/local/share/terraform/plugins/registry.terraform.io/hashicorp/aws3tooling/${TOOLING_AWS_VERSION}/linux_amd64"; \
-    mkdir -p "$DIR"; \
-    curl -fsSL "https://releases.hashicorp.com/terraform-provider-aws/${TOOLING_AWS_VERSION}/terraform-provider-aws_${TOOLING_AWS_VERSION}_linux_amd64.zip" -o /tmp/aws.zip; \
-    unzip -p /tmp/aws.zip "terraform-provider-aws*" > "${DIR}/terraform-provider-aws3tooling_v${TOOLING_AWS_VERSION}"; \
-    chmod 0755 "${DIR}/terraform-provider-aws3tooling_v${TOOLING_AWS_VERSION}"; \
+    ARCH=${TARGETARCH:-amd64}; \
+    curl -fsSL "https://releases.hashicorp.com/terraform-provider-aws/${TOOLING_AWS_VERSION}/terraform-provider-aws_${TOOLING_AWS_VERSION}_linux_${ARCH}.zip" -o /tmp/aws.zip; \
+    for host in registry.terraform.io registry.opentofu.org; do \
+        DIR="/usr/local/share/terraform/plugins/${host}/hashicorp/aws3tooling/${TOOLING_AWS_VERSION}/linux_${ARCH}"; \
+        mkdir -p "$DIR"; \
+        unzip -p /tmp/aws.zip "terraform-provider-aws*" > "${DIR}/terraform-provider-aws3tooling_v${TOOLING_AWS_VERSION}"; \
+        chmod 0755 "${DIR}/terraform-provider-aws3tooling_v${TOOLING_AWS_VERSION}"; \
+    done; \
     rm /tmp/aws.zip
+
+# Make both engines resolve the spoofed provider from the local mirror.
+# Terraform would discover /usr/local/share/terraform/plugins implicitly, but
+# OpenTofu does not search that path (its implied dirs are user-scoped). Pin an
+# explicit CLI config via TF_CLI_CONFIG_FILE — honored by BOTH terraform and
+# tofu — that serves aws3tooling from the mirror and everything else from the
+# registry. Both registry hosts are included so a bare provider resolves under
+# either engine. The mirror auto-selects the matching linux_<arch> subdir.
+ENV TF_CLI_CONFIG_FILE=/etc/iac/cli.tfrc
+RUN set -eux; mkdir -p /etc/iac; \
+    printf '%s\n' \
+      'provider_installation {' \
+      '  filesystem_mirror {' \
+      '    path    = "/usr/local/share/terraform/plugins"' \
+      '    include = [' \
+      '      "registry.terraform.io/hashicorp/aws3tooling",' \
+      '      "registry.opentofu.org/hashicorp/aws3tooling",' \
+      '    ]' \
+      '  }' \
+      '  direct {' \
+      '    exclude = [' \
+      '      "registry.terraform.io/hashicorp/aws3tooling",' \
+      '      "registry.opentofu.org/hashicorp/aws3tooling",' \
+      '    ]' \
+      '  }' \
+      '}' > /etc/iac/cli.tfrc
 
 # Default shell
 SHELL ["/bin/bash", "-c"]
 
 # Verify installation
-RUN terraform --version && curl --version && git --version && aws --version && iac-generator --version
+RUN terraform --version && tofu --version && curl --version && git --version && aws --version && iac-generator --version
 
 CMD [ "bash" ]
 
