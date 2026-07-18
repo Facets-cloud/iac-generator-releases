@@ -1,0 +1,41 @@
+apiVersion: krew.googlecontainertools.github.com/v1alpha2
+kind: Plugin
+metadata:
+  name: iac
+spec:
+  version: v0.0.1
+  homepage: https://github.com/Facets-cloud/iac-generator
+  shortDescription: Manage iac.facets.cloud Releases (create, compress, decompress)
+  description: |
+    Client-side helper for the iac-generator operator. Validate,
+    size-compress and apply a Release, and compress/decompress large
+    Release specs so they fit under etcd's per-object limit.
+  platforms:
+  - selector: { matchLabels: { os: linux, arch: amd64 } }
+    uri: https://github.com/Facets-cloud/iac-generator/releases/download/kubectl-iac-v0.0.1/kubectl-iac_v0.0.1_linux_amd64.tar.gz
+    sha256: 3b2f153d916aba39909755777debb0078744c1b89ce5282c3ec9af6caccc8c30
+    bin: kubectl-iac
+    files:
+    - from: kubectl-iac
+      to: .
+  - selector: { matchLabels: { os: linux, arch: arm64 } }
+    uri: https://github.com/Facets-cloud/iac-generator/releases/download/kubectl-iac-v0.0.1/kubectl-iac_v0.0.1_linux_arm64.tar.gz
+    sha256: f45abe21f46db406f05efe89556a71e3a622be7ecea2067f832b1f5d43762a95
+    bin: kubectl-iac
+    files:
+    - from: kubectl-iac
+      to: .
+  - selector: { matchLabels: { os: darwin, arch: amd64 } }
+    uri: https://github.com/Facets-cloud/iac-generator/releases/download/kubectl-iac-v0.0.1/kubectl-iac_v0.0.1_darwin_amd64.tar.gz
+    sha256: df36b00de559f1ff01580e7fff93ff857798717edc9118158f62c2ec49ba683e
+    bin: kubectl-iac
+    files:
+    - from: kubectl-iac
+      to: .
+  - selector: { matchLabels: { os: darwin, arch: arm64 } }
+    uri: https://github.com/Facets-cloud/iac-generator/releases/download/kubectl-iac-v0.0.1/kubectl-iac_v0.0.1_darwin_arm64.tar.gz
+    sha256: 2fc6bb059034ceeca2c80a6e634b5d3ef613dbae10062c42b97dfa81167db5c9
+    bin: kubectl-iac
+    files:
+    - from: kubectl-iac
+      to: .
