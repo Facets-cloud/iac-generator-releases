@@ -3,7 +3,7 @@ kind: Plugin
 metadata:
   name: iac
 spec:
-  version: v1.0.0
+  version: v1.0.1
   homepage: https://github.com/Facets-cloud/iac-generator
   shortDescription: Manage iac.facets.cloud Releases (create, compress, decompress)
   description: |
@@ -12,29 +12,29 @@ spec:
     Release specs so they fit under etcd's per-object limit.
   platforms:
   - selector: { matchLabels: { os: linux, arch: amd64 } }
-    uri: https://github.com/Facets-cloud/iac-generator-releases/releases/download/kubectl-iac-v1.0.0/kubectl-iac_v1.0.0_linux_amd64.tar.gz
-    sha256: 624f4c0f123c333071a8e0a37a6496131b4d9f851487320289991239fbcc8c84
+    uri: https://github.com/Facets-cloud/iac-generator-releases/releases/download/kubectl-iac-v1.0.1/kubectl-iac_v1.0.1_linux_amd64.tar.gz
+    sha256: 7337ee40b51616da6fcfbaddeaa94beeeadf65d313bd6932d04b2aaa365a9e44
     bin: kubectl-iac
     files:
     - from: kubectl-iac
       to: .
   - selector: { matchLabels: { os: linux, arch: arm64 } }
-    uri: https://github.com/Facets-cloud/iac-generator-releases/releases/download/kubectl-iac-v1.0.0/kubectl-iac_v1.0.0_linux_arm64.tar.gz
-    sha256: 76a00b22d25f2775f888529fcc337b76d92dc53b402ee6d3069c281421e55a52
+    uri: https://github.com/Facets-cloud/iac-generator-releases/releases/download/kubectl-iac-v1.0.1/kubectl-iac_v1.0.1_linux_arm64.tar.gz
+    sha256: 1198a41c9b4e3c99d5fa5f803b564aa893fc85951c760feb5fad5c0a601f60ee
     bin: kubectl-iac
     files:
     - from: kubectl-iac
       to: .
   - selector: { matchLabels: { os: darwin, arch: amd64 } }
-    uri: https://github.com/Facets-cloud/iac-generator-releases/releases/download/kubectl-iac-v1.0.0/kubectl-iac_v1.0.0_darwin_amd64.tar.gz
-    sha256: 4087b8871b530206a3f5a99dd0ac33e71e1bb323de033334a21299bf257edcd0
+    uri: https://github.com/Facets-cloud/iac-generator-releases/releases/download/kubectl-iac-v1.0.1/kubectl-iac_v1.0.1_darwin_amd64.tar.gz
+    sha256: ac019aa7349f25ff9ea7a06bb0f660c3015cb7b3441dbab34b43f7314b18af5c
     bin: kubectl-iac
     files:
     - from: kubectl-iac
       to: .
   - selector: { matchLabels: { os: darwin, arch: arm64 } }
-    uri: https://github.com/Facets-cloud/iac-generator-releases/releases/download/kubectl-iac-v1.0.0/kubectl-iac_v1.0.0_darwin_arm64.tar.gz
-    sha256: 264383eb98b04001f265ebb538ef6aab423b1389729f02180820020ecfb980a0
+    uri: https://github.com/Facets-cloud/iac-generator-releases/releases/download/kubectl-iac-v1.0.1/kubectl-iac_v1.0.1_darwin_arm64.tar.gz
+    sha256: 30382a9c750ea5ebf0b36bbf8f7fe59728de83c568b6bfe51074d46eec2c6a4b
     bin: kubectl-iac
     files:
     - from: kubectl-iac
